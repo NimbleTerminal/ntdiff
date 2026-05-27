@@ -110,3 +110,30 @@ func TestRichModel_StyledRowAligns(t *testing.T) {
 			wantColWidth, len(leftRunes), dataRow[:sep])
 	}
 }
+
+func TestRichModel_ForkRuleAppearsBeforeForkIndex(t *testing.T) {
+	d := RichDiff{
+		LeftLabel: "A", RightLabel: "B",
+		Lines: []RichLine{
+			{LeftText: "pre1", RightText: "pre1", Status: Shared},
+			{LeftText: "pre2", RightText: "pre2", Status: Shared},
+			{LeftText: "post1L", RightText: "post1R", Status: Changed},
+		},
+		ForkIndex: 2,
+	}
+	m := NewRichModel()
+	m.SetSize(80, 20)
+	m.LoadRichDiff(d)
+	out := m.View()
+
+	preIdx := strings.Index(out, "pre2")
+	ruleIdx := strings.Index(out, "Fork @ step 2")
+	postIdx := strings.Index(out, "post1L")
+
+	if preIdx == -1 || ruleIdx == -1 || postIdx == -1 {
+		t.Fatalf("expected all markers present, got out:\n%s", out)
+	}
+	if !(preIdx < ruleIdx && ruleIdx < postIdx) {
+		t.Fatalf("expected order pre2 < forkrule < post1, got preIdx=%d ruleIdx=%d postIdx=%d", preIdx, ruleIdx, postIdx)
+	}
+}
