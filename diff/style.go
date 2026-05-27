@@ -25,6 +25,10 @@ var (
 	ColorSharedLine = lipgloss.Color("8")
 	// ColorForkRule tints the horizontal rule rendered at a RichDiff fork point.
 	ColorForkRule = lipgloss.Color("6")
+	// ColorRemoved tints lines/tokens present only on the left (removed) side.
+	ColorRemoved = lipgloss.Color("9") // same as ColorDeletion
+	// ColorAdded tints lines/tokens present only on the right (added) side.
+	ColorAdded = lipgloss.Color("2") // same as ColorAddition
 )
 
 // ColorizeDiff parses a diff block line-by-line and applies appropriate Lipgloss styling.
