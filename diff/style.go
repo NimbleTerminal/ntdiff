@@ -20,6 +20,13 @@ var (
 	ColorStatusBg   = lipgloss.Color("235") // Dark Gray
 )
 
+var (
+	// ColorSharedLine tints lines that are identical on both sides of a RichDiff.
+	ColorSharedLine = lipgloss.Color("8")
+	// ColorForkRule tints the horizontal rule rendered at a RichDiff fork point.
+	ColorForkRule = lipgloss.Color("6")
+)
+
 // ColorizeDiff parses a diff block line-by-line and applies appropriate Lipgloss styling.
 func ColorizeDiff(diffText string) string {
 	lines := strings.Split(diffText, "\n")
