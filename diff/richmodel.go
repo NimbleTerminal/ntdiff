@@ -173,35 +173,43 @@ func (m RichModel) View() string {
 			b.WriteString("\n")
 		}
 		line := m.diff.Lines[i]
-		left := truncate(line.LeftText, colWidth)
-		right := truncate(line.RightText, colWidth)
 
-		switch line.Status {
-		case Shared:
-			st := lipgloss.NewStyle().Foreground(ColorSharedLine)
-			left = st.Render(left)
-			right = st.Render(right)
-		case LeftOnly:
-			left = lipgloss.NewStyle().Foreground(ColorRemoved).Render(left)
-		case RightOnly:
-			right = lipgloss.NewStyle().Foreground(ColorAdded).Render(right)
-		case Collapsed:
+		var row string
+		if line.Status == Collapsed {
 			label := fmt.Sprintf("··· %d shared rows (enter to expand) ···", collapsedCount(line))
-			left = lipgloss.NewStyle().Foreground(ColorSharedLine).Render(
-				center(label, colWidth*2+1),
-			)
-			right = ""
-		case Changed:
-			left = lipgloss.NewStyle().Foreground(ColorRemoved).Render(left)
-			right = lipgloss.NewStyle().Foreground(ColorAdded).Render(right)
+			spanWidth := colWidth*2 + 3 // left col + "│ " + right col
+			st := lipgloss.NewStyle().Foreground(ColorSharedLine).Width(spanWidth)
+			row = st.Render(center(label, spanWidth))
+		} else {
+			left := truncate(line.LeftText, colWidth)
+			right := truncate(line.RightText, colWidth)
+
+			switch line.Status {
+			case Shared:
+				left = lipgloss.NewStyle().Foreground(ColorSharedLine).Width(colWidth).Render(left)
+				right = lipgloss.NewStyle().Foreground(ColorSharedLine).Width(colWidth).Render(right)
+			case LeftOnly:
+				left = lipgloss.NewStyle().Foreground(ColorRemoved).Width(colWidth).Render(left)
+				right = lipgloss.NewStyle().Width(colWidth).Render(right)
+			case RightOnly:
+				left = lipgloss.NewStyle().Width(colWidth).Render(left)
+				right = lipgloss.NewStyle().Foreground(ColorAdded).Width(colWidth).Render(right)
+			case Changed:
+				left = lipgloss.NewStyle().Foreground(ColorRemoved).Width(colWidth).Render(left)
+				right = lipgloss.NewStyle().Foreground(ColorAdded).Width(colWidth).Render(right)
+			default:
+				left = lipgloss.NewStyle().Width(colWidth).Render(left)
+				right = lipgloss.NewStyle().Width(colWidth).Render(right)
+			}
+
+			if i == m.SelectedLine {
+				left = lipgloss.NewStyle().Reverse(true).Width(colWidth).Render(truncate(line.LeftText, colWidth))
+				right = lipgloss.NewStyle().Reverse(true).Width(colWidth).Render(truncate(line.RightText, colWidth))
+			}
+
+			row = left + "│ " + right
 		}
 
-		if i == m.SelectedLine {
-			left = lipgloss.NewStyle().Reverse(true).Render(left)
-			right = lipgloss.NewStyle().Reverse(true).Render(right)
-		}
-
-		row := fmt.Sprintf("%-*s│ %-*s", colWidth, left, colWidth, right)
 		if hasMeta {
 			meta := m.metaRender(line)
 			row += " │ " + truncate(meta, metaWidth)
