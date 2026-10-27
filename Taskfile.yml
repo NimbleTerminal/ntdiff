@@ -2,6 +2,9 @@
 
 version: '3'
 
+env:
+  GOWORK: 'off'
+
 tasks:
   default:
     desc: 'Default task runs the "test" and "build" tasks'
@@ -21,6 +24,7 @@ tasks:
     run: once
     cmds:
       - go mod tidy
+      - go -C examples mod tidy
 
   go-update:
     desc: 'Go update all the dependencies'
@@ -32,6 +36,7 @@ tasks:
     desc: 'Run all Go tests'
     cmds:
       - go test ./...
+      - go -C examples test ./...
 
   build:
     desc: 'Build the ntdiff binary'
@@ -56,14 +61,35 @@ tasks:
 ###############################################################################
 # Demo website via booba
 
-  build-wasm-site:
-    desc: 'Build the WASM demo site into web/'
-    deps: [go-tidy]
+  run-demo:
+    desc: 'Run the interactive terminal/typeset demo'
     cmds:
-      - GOARCH=wasm GOOS=js go build -o web/app.wasm ./cmd/ntdiff/
-      - go tool booba-assets web/
-    generates:
-      - web/app.wasm
+      - go -C examples run ./demo {{.CLI_ARGS}}
+
+  build-wasm:
+    desc: 'Build the demo with the pinned browser bridge'
+    env:
+      GOWORK: '{{.ROOT_DIR}}/wasm.work'
+      GOOS: js
+      GOARCH: wasm
+      CGO_ENABLED: '0'
+    cmds:
+      - go -C examples build -mod=readonly -trimpath -ldflags='-s -w' -o ../web/app.wasm ./demo
+
+  build-wasm-site:
+    desc: 'Build the demo and export the pinned booba runtime'
+    cmds:
+      - task: build-wasm
+      - go -C examples tool booba-assets --no-index ../web
+      - task: check-site
+
+  check-site:
+    desc: 'Validate web assets and exercise the real WASM demo under Node'
+    cmds:
+      - node --check web/site.js
+      - node scripts/check-site.mjs
+      - node scripts/smoke-demo.mjs
+      - node scripts/smoke-demo.mjs typeset
 
   serve-wasm-site:
     desc: 'Serve web/ at http://localhost:8000/ntdiff/ (matches GH Pages prefix)'
@@ -75,7 +101,7 @@ tasks:
       - rm -f {{.SERVE_DIR}}/ntdiff
       - ln -sfn "$(pwd)/web" {{.SERVE_DIR}}/ntdiff
       - echo 'Serving at http://localhost:8000/ntdiff/'
-      - cd {{.SERVE_DIR}} && python3 -m http.server 8000
+      - cd {{.SERVE_DIR}} && python3 -m http.server 8000 --bind 127.0.0.1
 
   clean-wasm-site:
     desc: 'Remove WASM demo site artifacts'

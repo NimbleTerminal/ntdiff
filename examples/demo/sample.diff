@@ -1,0 +1,60 @@
+diff --git a/server.go b/server.go
+index 3f420b1..be76021 100644
+--- a/server.go
++++ b/server.go
+@@ -1,9 +1,16 @@
+ package main
+ 
+ import (
++    "context"
+     "fmt"
++    "time"
+ )
+ 
+-func greet(name string) string {
+-    return "Hello, " + name
++func greet(ctx context.Context, name string) string {
++    select {
++    case <-ctx.Done():
++        return "Goodbye, " + name
++    case <-time.After(time.Second):
++        return fmt.Sprintf("Hello, %s!", name)
++    }
+ }
+@@ -20,3 +27,4 @@ func main() {
+-    message := greet("world")
++    ctx := context.Background()
++    message := greet(ctx, "world")
+     fmt.Println(message)
+ }
+diff --git a/config.json b/config.json
+index 4b01230..e28bbd1 100644
+--- a/config.json
++++ b/config.json
+@@ -1,5 +1,6 @@
+ {
+-  "timeout": 0,
+-  "greeting": "Hello",
++  "timeout": 1000,
++  "greeting": "Hello!",
++  "cancellable": true,
+   "port": 8080
+ }
+diff --git a/README.md b/README.md
+index 530e812..b82aa9d 100644
+--- a/README.md
++++ b/README.md
+@@ -1,4 +1,8 @@
+ # Greeting service
+ 
+-A small synchronous greeting server.
++A greeting server with cancellation support.
++
++Pass a context to stop pending work when the client disconnects.
++The default timeout is one second.
++
+ Run with `go run .`.
+diff --git a/old-name.txt b/notes.txt
+similarity index 100%
+rename from old-name.txt
+rename to notes.txt

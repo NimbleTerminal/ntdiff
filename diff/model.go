@@ -128,7 +128,28 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, tea.Batch(cmds...)
 }
 
-func (m Model) View() tea.View {
+// SelectedFileIndex returns the selected file index, or -1 for an empty tree.
+func (m Model) SelectedFileIndex() int {
+	if m.tree == nil || len(m.tree.Files) == 0 {
+		return -1
+	}
+	return m.selected
+}
+
+// FocusedPane reports which pane receives navigation keys.
+func (m Model) FocusedPane() FocusPane { return m.activeFocus }
+
+// DiffPaneSize returns the available content dimensions, excluding borders.
+func (m Model) DiffPaneSize() (width, height int) {
+	return max(0, m.width-m.width/3-2), max(0, m.height-3)
+}
+
+func (m Model) View() tea.View { return m.ViewWithDiffContent(m.viewport.View()) }
+
+// ViewWithDiffContent keeps the file list, focus borders, and status bar while
+// replacing the right pane. Embedders own rendering and scrolling that content;
+// use DiffPaneSize to size it and FocusedPane to route its navigation keys.
+func (m Model) ViewWithDiffContent(diffContent string) tea.View {
 	if m.width == 0 || m.height == 0 {
 		return tea.NewView("Initializing...")
 	}
@@ -139,8 +160,6 @@ func (m Model) View() tea.View {
 	} else {
 		leftOuterWidth := m.width / 3
 		rightOuterWidth := m.width - leftOuterWidth
-		leftInnerWidth := leftOuterWidth - 2
-		rightInnerWidth := rightOuterWidth - 2
 		innerHeight := m.height - 3
 		leftBorderColor := ColorInactiveBorder
 		rightBorderColor := ColorInactiveBorder
@@ -153,16 +172,16 @@ func (m Model) View() tea.View {
 		left := lipgloss.NewStyle().
 			Border(lipgloss.NormalBorder()).
 			BorderForeground(leftBorderColor).
-			Width(leftInnerWidth).
-			Height(innerHeight).
+			Width(leftOuterWidth).
+			Height(innerHeight + 2).
 			Render(m.files.View())
 
 		right := lipgloss.NewStyle().
 			Border(lipgloss.NormalBorder()).
 			BorderForeground(rightBorderColor).
-			Width(rightInnerWidth).
-			Height(innerHeight).
-			Render(m.viewport.View())
+			Width(rightOuterWidth).
+			Height(innerHeight + 2).
+			Render(diffContent)
 
 		content = lipgloss.JoinHorizontal(lipgloss.Top, left, right)
 	}

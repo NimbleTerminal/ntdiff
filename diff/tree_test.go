@@ -170,3 +170,28 @@ func TestFromGitWithPathSeparator(t *testing.T) {
 		t.Fatalf("stats %d %d", a, r)
 	}
 }
+
+func TestCustomDiffPaneKeepsFileList(t *testing.T) {
+	m := NewModel()
+	if m.SelectedFileIndex() != -1 {
+		t.Fatal("empty selection")
+	}
+	m.LoadTree(&Diff{Files: []File{{NewPath: "example.go"}}})
+	updated, _ := m.Update(tea.WindowSizeMsg{Width: 90, Height: 25})
+	m = updated.(Model)
+	w, h := m.DiffPaneSize()
+	if w != 58 || h != 22 {
+		t.Fatalf("pane dimensions %d %d", w, h)
+	}
+	out := stripANSI(m.ViewWithDiffContent("custom document").Content)
+	for _, s := range []string{"Changed Files", "example.go", "custom document", "Files Pane"} {
+		if !strings.Contains(out, s) {
+			t.Errorf("missing %q", s)
+		}
+	}
+	updated, _ = m.Update(tea.KeyPressMsg{Code: tea.KeyTab})
+	m = updated.(Model)
+	if m.FocusedPane() != FocusDiff {
+		t.Fatal("pane focus")
+	}
+}

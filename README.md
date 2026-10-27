@@ -97,16 +97,34 @@ Please note that the dependencies are tied to `charm.land/bubbletea/v2` and `cha
 
 ## Web Demo
 
-`ntdiff` features a browser-based demo that runs the compiled WebAssembly binary inside a native high-fidelity web terminal engine (`ghostty-web`).
+The browser demo shows the same parsed four-file patch in the existing terminal
+UI and as an nttypeset document rasterized through ntpicture. Press `v` to switch
+views without reparsing or losing the selected file, `j`/`k` to navigate, `Tab` to switch panes in either view, and
+`n` to toggle typeset line numbers. Browser buttons advertise the available keys.
 
-### Building and Serving the Site Locally
 ```bash
-# Build the WebAssembly site assets
+# Run the same demo natively (Go 1.26.8+)
+task run-demo
+# Start in typeset mode
+task run-demo -- -typeset
+
+# Build the browser demo and run its Node smoke tests (Node 22+)
 task build-wasm-site
 
-# Serve locally at http://localhost:8000/ntdiff/
+# Serve at http://localhost:8000/ntdiff/
 task serve-wasm-site
 ```
+
+The demo lives in `examples/demo` with its own module, embedded sample patch,
+and a small illustrative syntax annotator. `web/` contains the static site.
+`wasm.work` pins the team's browser-compatible Bubble Tea and clipboard forks;
+native builds keep upstream dependencies. Generated WASM and booba/ghostty assets
+are ignored by Git and recreated by `go -C examples tool booba-assets --no-index`.
+The GitHub Pages workflow builds and smoke-tests the demo before publishing.
+
+`task test` tests both modules. `task check-site` checks already-built web assets
+and exercises the real WASM bridge under Node in both starting views, including
+live mode switching, action publication, resizing, and clean exit.
 
 ## Structured diffs and typeset documents
 

@@ -20,11 +20,23 @@ jobs:
       - uses: actions/checkout@v6
       - uses: actions/setup-go@v6
         with:
-          go-version-file: go.mod
-      - name: Build WASM binary
-        run: GOARCH=wasm GOOS=js go build -o web/app.wasm ./cmd/ntdiff/
-      - name: Set up web assets
-        run: go tool booba-assets web/
+          go-version-file: examples/go.mod
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test library and demo
+        run: |
+          go test -mod=readonly ./...
+          go -C examples test -mod=readonly ./...
+      - name: Build WASM demo
+        run: GOWORK="$PWD/wasm.work" GOOS=js GOARCH=wasm CGO_ENABLED=0 go -C examples build -mod=readonly -trimpath -ldflags='-s -w' -o ../web/app.wasm ./demo
+      - name: Export runtime and check demo
+        run: |
+          go -C examples tool booba-assets --no-index ../web
+          node --check web/site.js
+          node scripts/check-site.mjs
+          node scripts/smoke-demo.mjs
+          node scripts/smoke-demo.mjs typeset
       - uses: actions/configure-pages@v6
       - uses: actions/upload-pages-artifact@v5
         with:
