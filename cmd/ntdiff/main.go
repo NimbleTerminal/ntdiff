@@ -1,10 +1,9 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
-	"os/exec"
-	"strings"
 
 	tea "charm.land/bubbletea/v2"
 	"github.com/NimbleMarkets/ntdiff/diff"
@@ -30,61 +29,33 @@ func main() {
 		}
 		diffText = string(data)
 	} else {
-		// Run git diff, forwarding any arguments
-		gitArgs := []string{"diff", "--no-color"}
-		if len(os.Args) > 1 {
-			gitArgs = append(gitArgs, os.Args[1:]...)
+		var tree *diff.Diff
+		var err error
+		if len(os.Args) == 3 && pathExists(os.Args[1]) && pathExists(os.Args[2]) {
+			tree, err = diff.ComparePaths(context.Background(), os.Args[1], os.Args[2])
+		} else {
+			tree, err = diff.FromGit(context.Background(), "", os.Args[1:]...)
 		}
-
-		cmd := exec.Command("git", gitArgs...)
-		var stderr strings.Builder
-		cmd.Stderr = &stderr
-
-		out, err := cmd.Output()
 		if err != nil {
-			stderrStr := stderr.String()
-			isNotGitRepo := strings.Contains(stderrStr, "Not a git repository") ||
-				strings.Contains(stderrStr, "not a git repository")
-
-			// Fallback: try to compare two files/folders outside of a git repository
-			if isNotGitRepo && len(os.Args) > 1 {
-				retryArgs := []string{"diff", "--no-color", "--no-index"}
-				retryArgs = append(retryArgs, os.Args[1:]...)
-				retryCmd := exec.Command("git", retryArgs...)
-				var retryStderr strings.Builder
-				retryCmd.Stderr = &retryStderr
-
-				if retryOut, retryErr := retryCmd.Output(); retryErr == nil {
-					diffText = string(retryOut)
-					goto diffLoaded
-				} else {
-					// Update error details to the retry attempt
-					err = retryErr
-					stderrStr = retryStderr.String()
-				}
-			}
-
-			// If it fails because it's not a git repository, show a friendly usage guide
-			if isNotGitRepo {
-				fmt.Fprint(os.Stderr, "ntdiff: A terminal diff viewer.\n\n")
-				fmt.Fprint(os.Stderr, "Usage:\n")
-				fmt.Fprint(os.Stderr, "  ntdiff <file>             Read a diff from a file\n")
-				fmt.Fprint(os.Stderr, "  ntdiff <file1> <file2>    Compare two files/directories outside a git repository\n")
-				fmt.Fprint(os.Stderr, "  ntdiff [git diff flags]   Run git diff in a repository (e.g. --cached, HEAD~1)\n")
-				fmt.Fprint(os.Stderr, "  some-command | ntdiff     Read a diff piped from stdin\n\n")
-				fmt.Fprint(os.Stderr, "Error: Not currently in a git repository.\n")
-				os.Exit(1)
-			}
-
-			fmt.Fprintf(os.Stderr, "Error running git diff: %v\n%s", err, stderrStr)
+			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}
-		diffText = string(out)
+		run(tree)
+		return
 	}
+	tree, err := diff.Parse(diffText)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+	run(tree)
+}
 
-diffLoaded:
+func pathExists(path string) bool { _, err := os.Stat(path); return err == nil }
+
+func run(tree *diff.Diff) {
 	model := diff.NewModel()
-	model.LoadDiff(diffText)
+	model.LoadTree(tree)
 
 	p := tea.NewProgram(model)
 

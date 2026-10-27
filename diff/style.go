@@ -31,21 +31,50 @@ var (
 	ColorAdded = ColorAddition
 )
 
-// ColorizeDiff parses a diff block line-by-line and applies appropriate Lipgloss styling.
-func ColorizeDiff(diffText string) string {
-	lines := strings.Split(diffText, "\n")
-	for i, line := range lines {
-		if strings.HasPrefix(line, "+") && !strings.HasPrefix(line, "+++") {
-			lines[i] = lipgloss.NewStyle().Foreground(ColorAddition).Render(line)
-		} else if strings.HasPrefix(line, "-") && !strings.HasPrefix(line, "---") {
-			lines[i] = lipgloss.NewStyle().Foreground(ColorDeletion).Render(line)
-		} else if strings.HasPrefix(line, "@@") {
-			lines[i] = lipgloss.NewStyle().Foreground(ColorHunkHeader).Render(line)
-		} else if strings.HasPrefix(line, "diff --git") {
-			lines[i] = lipgloss.NewStyle().Bold(true).Foreground(ColorDiffHeader).Render(line)
-		} else if strings.HasPrefix(line, "--- ") || strings.HasPrefix(line, "+++ ") {
-			lines[i] = lipgloss.NewStyle().Bold(true).Foreground(ColorFileHeader).Render(line)
+// RenderFile renders the structured file with Lip Gloss. Syntax colors override
+// body ink while the +/- prefix always retains the diff kind's color.
+func RenderFile(f File) string {
+	var lines []string
+	f.Rows(func(r Row) {
+		base := lipgloss.NewStyle()
+		switch r.Kind {
+		case AdditionRow:
+			base = base.Foreground(ColorAddition)
+		case DeletionRow:
+			base = base.Foreground(ColorDeletion)
+		case HunkRow:
+			base = base.Foreground(ColorHunkHeader)
+		case GitRow:
+			base = base.Foreground(ColorDiffHeader).Bold(true)
+		case FileRow:
+			base = base.Foreground(ColorFileHeader).Bold(true)
 		}
-	}
+		var b strings.Builder
+		for _, s := range r.Spans {
+			st := base
+			if s.Style.Foreground.A != 0 {
+				st = st.Foreground(s.Style.Foreground)
+			}
+			if s.Style.Bold {
+				st = st.Bold(true)
+			}
+			if s.Style.Italic {
+				st = st.Italic(true)
+			}
+			b.WriteString(st.Render(s.Text))
+		}
+		lines = append(lines, b.String())
+	})
 	return strings.Join(lines, "\n")
+}
+
+// ColorizeDiff is a compatibility wrapper. Parsing happens once; RenderFile
+// performs no prefix recognition on source text.
+func ColorizeDiff(text string) string {
+	d, _ := Parse(text)
+	parts := append([]string(nil), d.Preamble...)
+	for _, f := range d.Files {
+		parts = append(parts, RenderFile(f))
+	}
+	return strings.Join(parts, "\n")
 }

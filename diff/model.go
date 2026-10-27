@@ -27,7 +27,7 @@ const (
 type Model struct {
 	files       list.Model
 	viewport    viewport.Model
-	filesList   []FileChange
+	tree        *Diff
 	selected    int
 	width       int
 	height      int
@@ -46,6 +46,7 @@ func NewModel() Model {
 
 	return Model{
 		files:       l,
+		tree:        &Diff{},
 		viewport:    vp,
 		activeFocus: FocusFiles,
 	}
@@ -106,9 +107,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			cmds = append(cmds, cmd)
 
 			// Automatically update diff preview on navigation
-			if m.files.Index() != prevIndex && len(m.filesList) > 0 {
+			if m.files.Index() != prevIndex && len(m.tree.Files) > 0 {
 				m.selected = m.files.Index()
-				m.viewport.SetContent(ColorizeDiff(m.filesList[m.selected].Diff))
+				m.viewport.SetContent(RenderFile(m.tree.Files[m.selected]))
 				m.viewport.SetYOffset(0)
 			}
 		} else {
@@ -133,7 +134,7 @@ func (m Model) View() tea.View {
 	}
 
 	var content string
-	if len(m.filesList) == 0 {
+	if len(m.tree.Files) == 0 {
 		content = lipgloss.NewStyle().Foreground(lipgloss.Color("9")).Render("No diff loaded.")
 	} else {
 		leftOuterWidth := m.width / 3
@@ -196,19 +197,30 @@ func (m Model) View() tea.View {
 
 // LoadDiff loads unified diff text and parses it into files
 func (m *Model) LoadDiff(diffText string) {
-	files := ParseDiff(diffText)
-	m.filesList = files
+	tree, _ := Parse(diffText)
+	m.LoadTree(tree)
+}
 
-	items := make([]list.Item, len(files))
-	for i, f := range files {
-		items[i] = listItem{
-			title: fmt.Sprintf("%s (+%d, -%d)", f.Path, f.Additions, f.Deletions),
-		}
+// LoadTree loads a parsed diff and resets selection and scrolling. Treat the
+// tree as immutable while loaded; call LoadTree again after editing it.
+// A nil tree clears the view. Parse separately to handle malformed input.
+func (m *Model) LoadTree(tree *Diff) {
+	if tree == nil {
+		tree = &Diff{}
 	}
-
+	m.tree = tree
+	m.selected = 0
+	items := make([]list.Item, len(tree.Files))
+	for i, f := range tree.Files {
+		additions, deletions := f.Stats()
+		items[i] = listItem{title: fmt.Sprintf("%s (+%d, -%d)", f.Path(), additions, deletions)}
+	}
 	m.files.SetItems(items)
-	if len(files) > 0 {
-		m.viewport.SetContent(ColorizeDiff(files[0].Diff))
+	m.files.ResetSelected()
+	m.viewport.SetYOffset(0)
+	m.viewport.SetContent("No diff loaded")
+	if len(tree.Files) > 0 {
+		m.viewport.SetContent(RenderFile(tree.Files[0]))
 	}
 }
 

@@ -107,3 +107,92 @@ task build-wasm-site
 # Serve locally at http://localhost:8000/ntdiff/
 task serve-wasm-site
 ```
+
+## Structured diffs and typeset documents
+
+The module now requires Go 1.26 because `nimbleterminal.dev/nttypeset v0.1.3`
+requires it. The module path remains `github.com/NimbleMarkets/ntdiff` for now.
+
+Parse once, then use the same tree for either renderer:
+
+```go
+tree, err := diff.Parse(diffText)
+if err != nil {
+    return err // includes the input line number; tree contains the parsed prefix
+}
+model := diff.NewModel()
+model.LoadTree(tree)
+
+// Import diffTypeset "github.com/NimbleMarkets/ntdiff/typeset".
+doc := diffTypeset.Convert(tree, diffTypeset.Options{LineNumbers: true})
+// doc is *nttypeset.Document, ready for an app-owned nttypeset.Engine.
+```
+
+The tree consists of `Diff.Files`, `File.Hunks`, and `Hunk.Lines`. Lines carry a
+`LineKind`, source text without its diff prefix, and optional `*int` old/new
+numbers. Zero-length hunk ranges are distinct from absent line numbers.
+`File.Stats()` derives counts from the tree. `File.Headers` preserves extended
+Git metadata, binary notices/payloads, and file headers in order; `Diff.Preamble`
+preserves introductory text. Each tree level has an optional caller-owned
+`Metadata` map. Binary payloads are retained, not decoded.
+
+`diff.FromGit(ctx, dir, args...)` and `diff.ComparePaths(ctx, old, new)` acquire
+and parse input. The latter works inside or outside a repository and handles
+Git's “differences found” exit status. The CLI uses these same helpers.
+
+`Parse` accepts Git and plain unified diffs, including multiple files/hunks,
+renames, mode changes, quoted Git paths, and no-final-newline markers. Malformed
+hunk ranges/counts and combined merge diffs return errors. This is a display
+model, not a byte-for-byte patch serializer: hunk headers use explicit counts,
+and trailing patch separators are not retained inside hunks.
+
+`Line.Tokens` optionally annotates ordered, non-overlapping UTF-8 byte ranges of
+`Line.Text`. Each token has a lexer `Kind` and portable `TextStyle` (RGBA ink,
+bold, italic). Both renderers use those styles; typeset callers can additionally
+map categories with `Options.TokenStyle`. Invalid token ranges fall back to the
+whole line's plain diff style. Tokenization is caller-owned: highlight complete
+old/new source when available, then attach tokens using the line numbers. This
+avoids guessing multiline lexical state from partial hunks. The +/- marker
+retains its diff color even when syntax colors override the body.
+
+`File.Rows` is the shared, derived row/span traversal. `diff.RenderFile` applies
+Lip Gloss styling; `typeset.Convert` creates monospace `KindLine` blocks with
+styled spans. Optional old/new line-number columns are explicit spans;
+nttypeset's sequential document gutter is disabled. Tabs default to four spaces.
+The document uses unified rows, matching the existing file-list/viewport UI.
+
+The embedding app owns fonts, viewport sizing, layout, rasterization, and
+ntpicture's terminal protocol lifecycle. For example, given a configured engine:
+
+```go
+layout, err := engine.Layout(doc, 1000, nttypeset.LayoutOptions{})
+if err != nil { return err }
+img, err := layout.Raster(ctx,
+    nttypeset.View{Width: 1000, Height: 800, Scale: 1},
+    nttypeset.RasterOptions{Palette: nttypeset.DarkPalette()},
+)
+if err != nil { return err }
+// Pass img (image.Image) to the app's ntpicture model.
+```
+
+This keeps the font bundles and image-display lifecycle out of the diff library.
+The `typeset` package is optional to import; terminal-only binaries do not link
+nttypeset. Its dependency still sets the module-wide Go version requirement.
+
+Existing `NewModel`, `LoadDiff`, `ParseDiff`, and `ColorizeDiff` entry points remain
+available. Prefer `Parse` to surface errors: the legacy no-error wrappers use the
+parsed prefix. `ParseDiff` returns derived `FileChange` snapshots with normalized
+hunk headers. Treat a loaded tree as immutable and call `LoadTree` again after
+editing it; that resets selection and scrolling. The separate caller-supplied
+`RichDiff` / `RichModel` API is unchanged.
+
+### Eventual module move
+
+After transferring the repository to NimbleTerminal, configure the vanity import
+metadata for `nimbleterminal.dev/ntdiff`, then change the `module` directive and
+internal/example imports together. Keep the `/diff` and `/typeset` packages;
+no package-layout change is needed. Update installation commands, documentation
+links, badges, and release/Pages configuration to the new repository and tag a
+release under the new module path. Embedders must update their imports together:
+Go treats the old and new module paths as different type identities. A GitHub
+repository redirect alone does not migrate Go imports.
