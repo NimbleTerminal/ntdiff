@@ -84,7 +84,7 @@ func TestRichModel_StyledRowAligns(t *testing.T) {
 	d := RichDiff{
 		LeftLabel:  "A",
 		RightLabel: "B",
-		Lines: []RichLine{{LeftText: "x", RightText: "y", Status: Changed}},
+		Lines:      []RichLine{{LeftText: "x", RightText: "y", Status: Changed}},
 	}
 	m := NewRichModel()
 	m.SetSize(40, 10)

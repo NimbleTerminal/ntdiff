@@ -13,12 +13,12 @@ import (
 
 	"charm.land/bubbles/v2/key"
 	tea "charm.land/bubbletea/v2"
+	"github.com/charmbracelet/x/ansi"
 	booba "nimbleterminal.dev/booba"
 	"nimbleterminal.dev/booba/actions"
 	"nimbleterminal.dev/booba/actions/bubblehelp"
 	"nimbleterminal.dev/ntdiff/diff"
 	diffTypeset "nimbleterminal.dev/ntdiff/typeset"
-	"github.com/charmbracelet/x/ansi"
 	"nimbleterminal.dev/ntfonts"
 	nt "nimbleterminal.dev/ntpicture"
 	"nimbleterminal.dev/nttypeset"

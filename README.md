@@ -122,6 +122,11 @@ native builds keep upstream dependencies. Generated WASM and booba/ntwebterm ass
 are ignored by Git and recreated by `go -C examples tool booba-assets --no-index`.
 The GitHub Pages workflow builds and smoke-tests the demo before publishing.
 
+`task ci` runs formatting, module tidiness and checksum checks, race tests,
+`go vet`, native builds, and the WASM build and smoke tests. It requires Go
+1.26.8+, a C compiler for the race detector, Task, and Node 22+. Module tidiness
+checks do not rewrite files; use `task go-tidy` to fix them.
+
 `task test` tests both modules. `task check-site` checks already-built web assets
 and exercises the real WASM bridge under Node in both starting views, including
 live mode switching, action publication, resizing, and clean exit.
