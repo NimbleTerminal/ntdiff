@@ -1,6 +1,6 @@
 # `ntdiff` CHANGELOG
 
-## Unreleased
+## v0.1.0 (2026-11-05)
 
 ### Migration
 
@@ -63,4 +63,4 @@ First tagged release, under `github.com/NimbleMarkets/ntdiff`.
 - Display-width-aware row padding and fork-marker placement regression tests.
 - Contributor Code of Conduct.
 
-[Unreleased changes](https://github.com/NimbleTerminal/ntdiff/compare/v0.0.1...HEAD)
+[v0.1.0 changes](https://github.com/NimbleTerminal/ntdiff/compare/v0.0.1...v0.1.0)

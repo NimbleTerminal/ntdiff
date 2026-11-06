@@ -35,8 +35,7 @@ go install nimbleterminal.dev/ntdiff/cmd/ntdiff@latest
 go get nimbleterminal.dev/ntdiff@latest
 ```
 
-The vanity module path is new and awaits its first release tag. Until that
-release is published, build this checkout with `task build` and run `bin/ntdiff`.
+To build from a checkout, run `task build` and then `bin/ntdiff`.
 
 ## CLI
 
