@@ -7,7 +7,7 @@ import (
 	"image/color"
 	"strings"
 
-	"github.com/NimbleMarkets/ntdiff/diff"
+	"nimbleterminal.dev/ntdiff/diff"
 	"nimbleterminal.dev/nttypeset"
 )
 

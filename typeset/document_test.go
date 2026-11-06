@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/NimbleMarkets/ntdiff/diff"
+	"nimbleterminal.dev/ntdiff/diff"
 	"nimbleterminal.dev/nttypeset"
 )
 

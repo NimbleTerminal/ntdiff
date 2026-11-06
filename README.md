@@ -1,10 +1,10 @@
 # ntdiff - Nimble Terminal Diff
 
 <p>
-    <a href="https://github.com/NimbleMarkets/ntdiff/actions/workflows/pages.yml"><img src="https://github.com/NimbleMarkets/ntdiff/actions/workflows/pages.yml/badge.svg" alt="Deploy to GitHub Pages Status"></a>
-    <a href="https://github.com/NimbleMarkets/ntdiff/tags"><img src="https://img.shields.io/github/tag/NimbleMarkets/ntdiff.svg" alt="Latest Release"></a>
-    <a href="https://pkg.go.dev/github.com/NimbleMarkets/ntdiff?tab=doc"><img src="https://godoc.org/github.com/golang/gddo?status.svg" alt="GoDoc"></a>
-    <a href="https://github.com/NimbleMarkets/ntdiff/blob/main/CODE_OF_CONDUCT.md"><img src="https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg"  alt="Code Of Conduct"></a>
+    <a href="https://github.com/NimbleTerminal/ntdiff/actions/workflows/pages.yml"><img src="https://github.com/NimbleTerminal/ntdiff/actions/workflows/pages.yml/badge.svg" alt="Deploy to GitHub Pages Status"></a>
+    <a href="https://github.com/NimbleTerminal/ntdiff/tags"><img src="https://img.shields.io/github/tag/NimbleTerminal/ntdiff.svg" alt="Latest Release"></a>
+    <a href="https://pkg.go.dev/nimbleterminal.dev/ntdiff?tab=doc"><img src="https://godoc.org/github.com/golang/gddo?status.svg" alt="GoDoc"></a>
+    <a href="https://github.com/NimbleTerminal/ntdiff/blob/main/CODE_OF_CONDUCT.md"><img src="https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg"  alt="Code Of Conduct"></a>
 </p>
 
 `ntdiff` is a Golang Terminal Diff viewer for the Bubble Tea Framework and other TUIs. It parses unified diffs and provides an interactive split-pane terminal interface to explore code changes.
@@ -26,7 +26,7 @@
 
 ### Install the CLI
 ```bash
-go install github.com/NimbleMarkets/ntdiff/cmd/ntdiff@latest
+go install nimbleterminal.dev/ntdiff/cmd/ntdiff@latest
 ```
 
 ### Usage
@@ -58,7 +58,7 @@ import (
 	"os"
 
 	tea "charm.land/bubbletea/v2"
-	"github.com/NimbleMarkets/ntdiff/diff"
+	"nimbleterminal.dev/ntdiff/diff"
 )
 
 func main() {
@@ -88,7 +88,7 @@ func main() {
 We have migrated to **Bubble Tea v2**. You should import `ntdiff` as so:
 
 ```go
-import "github.com/NimbleMarkets/ntdiff/diff"
+import "nimbleterminal.dev/ntdiff/diff"
 ```
 
 Please note that the dependencies are tied to `charm.land/bubbletea/v2` and `charm.land/lipgloss/v2` for WebAssembly and rendering enhancements.
@@ -128,8 +128,8 @@ live mode switching, action publication, resizing, and clean exit.
 
 ## Structured diffs and typeset documents
 
-The module now requires Go 1.26 because `nimbleterminal.dev/nttypeset v0.1.3`
-requires it. The module path remains `github.com/NimbleMarkets/ntdiff` for now.
+The module requires Go 1.26.8 or later and uses the canonical import path
+`nimbleterminal.dev/ntdiff`.
 
 Parse once, then use the same tree for either renderer:
 
@@ -141,7 +141,7 @@ if err != nil {
 model := diff.NewModel()
 model.LoadTree(tree)
 
-// Import diffTypeset "github.com/NimbleMarkets/ntdiff/typeset".
+// Import diffTypeset "nimbleterminal.dev/ntdiff/typeset".
 doc := diffTypeset.Convert(tree, diffTypeset.Options{LineNumbers: true})
 // doc is *nttypeset.Document, ready for an app-owned nttypeset.Engine.
 ```
@@ -204,13 +204,13 @@ hunk headers. Treat a loaded tree as immutable and call `LoadTree` again after
 editing it; that resets selection and scrolling. The separate caller-supplied
 `RichDiff` / `RichModel` API is unchanged.
 
-### Eventual module move
+### Module migration
 
-After transferring the repository to NimbleTerminal, configure the vanity import
-metadata for `nimbleterminal.dev/ntdiff`, then change the `module` directive and
-internal/example imports together. Keep the `/diff` and `/typeset` packages;
-no package-layout change is needed. Update installation commands, documentation
-links, badges, and release/Pages configuration to the new repository and tag a
-release under the new module path. Embedders must update their imports together:
-Go treats the old and new module paths as different type identities. A GitHub
-repository redirect alone does not migrate Go imports.
+The repository lives at [NimbleTerminal/ntdiff](https://github.com/NimbleTerminal/ntdiff)
+and the canonical Go module path is `nimbleterminal.dev/ntdiff`. Existing consumers
+should change their imports from `github.com/NimbleMarkets/ntdiff` to
+`nimbleterminal.dev/ntdiff`, including the `/diff` and `/typeset` packages, and run
+`go mod tidy`. The package layout is unchanged.
+
+Update all imports together: Go treats the old and new module paths as different
+type identities. A GitHub repository redirect alone does not migrate Go imports.

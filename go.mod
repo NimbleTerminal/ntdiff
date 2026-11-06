@@ -1,4 +1,4 @@
-module github.com/NimbleMarkets/ntdiff
+module nimbleterminal.dev/ntdiff
 
 go 1.26.8
 

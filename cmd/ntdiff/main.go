@@ -6,7 +6,7 @@ import (
 	"os"
 
 	tea "charm.land/bubbletea/v2"
-	"github.com/NimbleMarkets/ntdiff/diff"
+	"nimbleterminal.dev/ntdiff/diff"
 )
 
 func main() {

@@ -1,13 +1,13 @@
-module github.com/NimbleMarkets/ntdiff/examples
+module nimbleterminal.dev/ntdiff/examples
 
 go 1.26.8
 
 require (
 	charm.land/bubbles/v2 v2.2.1
 	charm.land/bubbletea/v2 v2.1.1
-	github.com/NimbleMarkets/ntdiff v0.0.1
 	github.com/charmbracelet/x/ansi v0.11.9
 	nimbleterminal.dev/booba v0.12.1
+	nimbleterminal.dev/ntdiff v0.0.1
 	nimbleterminal.dev/ntfonts v0.3.1
 	nimbleterminal.dev/ntpicture v0.1.5
 	nimbleterminal.dev/nttypeset v0.2.0
@@ -46,6 +46,6 @@ require (
 	nimbleterminal.dev/ntmediabox/pkg/mediabox v0.1.0 // indirect
 )
 
-replace github.com/NimbleMarkets/ntdiff => ..
+replace nimbleterminal.dev/ntdiff => ..
 
 tool nimbleterminal.dev/booba/cmd/booba-assets
