@@ -18,7 +18,7 @@
 - **Syntax Highlighting:** Uses Lip Gloss to colorize diff components (additions in green, deletions in red, hunk headers in cyan, diff headers in magenta).
 - **Interactive Navigation:** Smooth pane switching (`Tab` or `h`/`l`) and scrolling/list navigation (`↑`/`↓` or `k`/`j`).
 - **Flexible Inputs:** Automatically detects piped stdin, accepts direct file/directory paths, or runs `git diff` fallback.
-- **WebAssembly Ready:** Full browser demo utilizing the Ghostty terminal emulator engine (`ghostty-web`) via `booba`.
+- **WebAssembly Ready:** Full browser demo utilizing the Ghostty terminal emulator engine (`ntwebterm`) via `booba`.
 
 ---
 
@@ -118,7 +118,7 @@ task serve-wasm-site
 The demo lives in `examples/demo` with its own module, embedded sample patch,
 and a small illustrative syntax annotator. `web/` contains the static site.
 `wasm.work` pins the team's browser-compatible Bubble Tea and clipboard forks;
-native builds keep upstream dependencies. Generated WASM and booba/ghostty assets
+native builds keep upstream dependencies. Generated WASM and booba/ntwebterm assets
 are ignored by Git and recreated by `go -C examples tool booba-assets --no-index`.
 The GitHub Pages workflow builds and smoke-tests the demo before publishing.
 

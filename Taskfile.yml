@@ -31,6 +31,8 @@ tasks:
     run: once
     cmds:
       - go get -u ./...
+      - go -C examples get -u ./... tool
+      - task: go-tidy
 
   test:
     desc: 'Run all Go tests'
@@ -106,6 +108,6 @@ tasks:
   clean-wasm-site:
     desc: 'Remove WASM demo site artifacts'
     cmds:
-      - rm -rf web/booba web/ghostty-web
+      - rm -rf web/booba web/ghostty-web web/ntwebterm
       - rm -f web/wasm_exec.js
       - rm -f web/app.wasm

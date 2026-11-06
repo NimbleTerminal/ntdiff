@@ -6,7 +6,7 @@ use (
  ./examples
 )
 
-replace charm.land/bubbletea/v2 => github.com/neomantra/bubbletea/v2 v2.0.0-20261009201241-c397c32a5074
+replace charm.land/bubbletea/v2 => github.com/neomantra/bubbletea/v2 v2.0.0-20261020122444-536722b0bdb6
 
 // The file list imports textinput even with filtering disabled. Use the
 // team's browser-compatible clipboard implementation only for WASM builds.

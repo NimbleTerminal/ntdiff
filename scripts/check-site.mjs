@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { readFile, stat } from 'node:fs/promises';
-for (const file of ['index.html', 'site.js', 'site.css', 'app.wasm', 'wasm_exec.js', 'booba/booba.js', 'ghostty-web/ghostty-vt.wasm']) {
+for (const file of ['index.html', 'site.js', 'site.css', 'app.wasm', 'wasm_exec.js', 'booba/booba.js', 'ntwebterm/ntwebterm.js', 'ntwebterm/ghostty-vt.wasm']) {
   assert.ok((await stat(`web/${file}`)).size > 0, `missing or empty ${file}`);
 }
 const html = await readFile('web/index.html', 'utf8');
