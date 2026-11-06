@@ -68,13 +68,22 @@ tasks:
       - go vet -mod=readonly ./...
       - go -C examples vet -mod=readonly ./...
 
+  fuzz:
+    desc: 'Fuzz parsing, quoted paths, and token spans (10s per target by default)'
+    vars:
+      FUZZTIME: '{{default "10s" .FUZZTIME}}'
+    cmds:
+      - for: [FuzzParse, FuzzQuotedPaths, FuzzTokenSpans]
+        cmd: go test -mod=readonly ./diff -run='^$' -fuzz='^{{.ITEM}}$' -fuzztime={{.FUZZTIME}} -parallel=2
+
   ci:
-    desc: 'Check formatting, dependencies, race tests, vet, native builds, and the WASM demo'
+    desc: 'Check formatting, dependencies, race tests, fuzzing, vet, native builds, and the WASM demo'
     cmds:
       - task: fmt-check
       - task: go-tidy-check
       - task: go-verify
       - task: test-race
+      - task: fuzz
       - task: vet
       - task: build
       - task: build-examples
