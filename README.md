@@ -1,197 +1,154 @@
-# ntdiff - Nimble Terminal Diff
+# ntdiff — One diff, two views
 
 <p>
-    <a href="https://github.com/NimbleTerminal/ntdiff/actions/workflows/pages.yml"><img src="https://github.com/NimbleTerminal/ntdiff/actions/workflows/pages.yml/badge.svg" alt="Deploy to GitHub Pages Status"></a>
-    <a href="https://github.com/NimbleTerminal/ntdiff/tags"><img src="https://img.shields.io/github/tag/NimbleTerminal/ntdiff.svg" alt="Latest Release"></a>
-    <a href="https://pkg.go.dev/nimbleterminal.dev/ntdiff?tab=doc"><img src="https://godoc.org/github.com/golang/gddo?status.svg" alt="GoDoc"></a>
-    <a href="https://github.com/NimbleTerminal/ntdiff/blob/main/CODE_OF_CONDUCT.md"><img src="https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg"  alt="Code Of Conduct"></a>
+    <a href="https://pkg.go.dev/nimbleterminal.dev/ntdiff/diff"><img src="https://pkg.go.dev/badge/nimbleterminal.dev/ntdiff/diff.svg" alt="Go Reference"></a>
+    <a href="https://github.com/NimbleTerminal/ntdiff/actions/workflows/pages.yml"><img src="https://github.com/NimbleTerminal/ntdiff/actions/workflows/pages.yml/badge.svg" alt="CI and demo deployment"></a>
+    <a href="./CODE_OF_CONDUCT.md"><img src="https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg" alt="Code Of Conduct"></a>
 </p>
 
-`ntdiff` is a Golang Terminal Diff viewer for the Bubble Tea Framework and other TUIs. It parses unified diffs and provides an interactive split-pane terminal interface to explore code changes.
+Browse unified diffs in a [Bubble Tea v2](https://github.com/charmbracelet/bubbletea)
+terminal UI, or turn the same parsed tree into a typeset document. Use ntdiff as
+an interactive command-line viewer or embed its components in your own app.
 
----
+- **`diff.Parse`** produces files, hunks, and numbered lines, preserving Git
+  metadata and reporting malformed input with a line-numbered error.
+- **`diff.Model`** pairs a changed-file list with a scrollable, colorized unified
+  diff. Both panes respond to terminal resizing and keyboard navigation.
+- **`typeset.Convert`** produces an [nttypeset](https://github.com/NimbleTerminal/nttypeset)
+  document with optional old/new line numbers and caller-supplied syntax styles.
+- **`diff.RichModel`** displays caller-supplied side-by-side rows, a fork marker,
+  and an optional metadata column.
 
-## Features
+[Open the browser demo](https://nimbleterminal.github.io/ntdiff/) ·
+[Changelog](./CHANGELOG.md)
 
-- **Split-Pane Layout:** List of changed files with addition/deletion counts on the left; scrollable, colorized unified diff viewport on the right.
-- **Dynamic Adjustments:** Responsive UI that adapts to terminal resize events automatically.
-- **Syntax Highlighting:** Uses Lip Gloss to colorize diff components (additions in green, deletions in red, hunk headers in cyan, diff headers in magenta).
-- **Interactive Navigation:** Smooth pane switching (`Tab` or `h`/`l`) and scrolling/list navigation (`↑`/`↓` or `k`/`j`).
-- **Flexible Inputs:** Automatically detects piped stdin, accepts direct file/directory paths, or runs `git diff` fallback.
-- **WebAssembly Ready:** Full browser demo utilizing the Ghostty terminal emulator engine (`ntwebterm`) via `booba`.
+## Install
 
----
+Requires Go 1.26.8 or later. Git is needed for repository diffs and comparisons
+between two paths; parsing an existing patch does not invoke Git.
 
-## Installation & CLI Usage
-
-### Install the CLI
-```bash
+```sh
+# CLI
 go install nimbleterminal.dev/ntdiff/cmd/ntdiff@latest
+
+# Library
+go get nimbleterminal.dev/ntdiff@latest
 ```
 
-### Usage
-```bash
-# Run git diff inside a repository
-ntdiff
+The vanity module path is new and awaits its first release tag. Until that
+release is published, build this checkout with `task build` and run `bin/ntdiff`.
 
-# Read a diff from a file
-ntdiff patch.diff
+## CLI
 
-# Compare two files or directories outside a git repository
-ntdiff file1.txt file2.txt
-
-# Pipe a command output directly
-git diff HEAD~1 | ntdiff
+```sh
+ntdiff                         # unstaged changes in the current repository
+ntdiff --cached                # staged changes; arguments are passed to git diff
+ntdiff HEAD~1 -- path/to/file   # compare a revision, limiting the paths
+ntdiff patch.diff              # read a unified diff file
+ntdiff old.txt new.txt         # compare two files (directories also work)
+git diff HEAD~1 | ntdiff       # read a patch from stdin
 ```
 
----
+The CLI prefers piped input, then a single existing patch file, then two existing
+paths. Other arguments go to `git diff`. Invalid patches produce an error instead
+of opening a partially parsed view.
 
-## Library Usage
+Use `Tab` or `h`/`l` to switch panes, arrows or `j`/`k` to navigate, and `q` or
+`Ctrl+C` to quit. Added and deleted lines have distinct colors; source-language
+syntax highlighting is optional and supplied by the embedding app.
 
-`ntdiff` can also be integrated into other Bubble Tea applications as a model.
+## Quick start
 
 ```go
 package main
 
 import (
-	"fmt"
-	"os"
+    "log"
 
-	tea "charm.land/bubbletea/v2"
-	"nimbleterminal.dev/ntdiff/diff"
+    tea "charm.land/bubbletea/v2"
+    "nimbleterminal.dev/ntdiff/diff"
 )
 
 func main() {
-	diffText := `diff --git a/hello.txt b/hello.txt
---- a/hello.txt
-+++ b/hello.txt
-@@ -1,1 +1,2 @@
- hello
-+world!
-`
+    patch := "--- a/hello.txt\n+++ b/hello.txt\n@@ -1 +1,2 @@\n hello\n+world!\n"
+    tree, err := diff.Parse(patch)
+    if err != nil {
+        log.Fatal(err)
+    }
 
-	model := diff.NewModel()
-	model.LoadDiff(diffText)
-
-	p := tea.NewProgram(model)
-	if _, err := p.Run(); err != nil {
-		fmt.Fprintf(os.Stderr, "Error running program: %v\n", err)
-		os.Exit(1)
-	}
+    model := diff.NewModel()
+    model.LoadTree(tree)
+    if _, err := tea.NewProgram(model).Run(); err != nil {
+        log.Fatal(err)
+    }
 }
 ```
 
----
+In an existing Bubble Tea app, forward messages to the model's `Update`, run its
+returned commands, and use its `View`. `SelectedFileIndex`, `FocusedPane`, and
+`DiffPaneSize` expose the current layout and selection. `ViewWithDiffContent`
+keeps the file list and pane chrome while your app supplies the diff pane.
 
-## BubbleTea Version Compatibility
+## Structured diffs
 
-We have migrated to **Bubble Tea v2**. You should import `ntdiff` as so:
+`Diff.Files`, `File.Hunks`, and `Hunk.Lines` are the source of truth. Each line
+contains its kind, text without the diff prefix, and optional old/new line
+numbers. `File.Stats()` derives addition/deletion counts from those lines.
+`File.Rows` visits the derived headers and styled spans in reading order;
+`diff.RenderFile` renders them with Lip Gloss.
 
-```go
-import "nimbleterminal.dev/ntdiff/diff"
-```
+`Parse` handles Git and plain unified patches, multiple files and hunks,
+creations, deletions, renames, mode changes, quoted paths, and no-final-newline
+markers. It preserves preambles, extended headers, and binary payloads without
+decoding binary patches. Invalid hunk ranges/counts and combined merge diffs
+return errors. On error, the returned tree contains the successfully parsed
+prefix.
 
-Please note that the dependencies are tied to `charm.land/bubbletea/v2` and `charm.land/lipgloss/v2` for WebAssembly and rendering enhancements.
+This is a display model, not a byte-for-byte patch serializer. Derived hunk
+headers use explicit counts. Treat a loaded tree as immutable; after editing it,
+call `LoadTree` again to refresh the view and reset selection and scrolling.
+The diff, file, hunk, and line types have caller-owned `Metadata` maps.
 
----
-
-## Web Demo
-
-The browser demo shows the same parsed four-file patch in the existing terminal
-UI and as an nttypeset document rasterized through ntpicture. Press `v` to switch
-views without reparsing or losing the selected file, `j`/`k` to navigate, `Tab` to switch panes in either view, and
-`n` to toggle typeset line numbers. Browser buttons advertise the available keys.
-
-```bash
-# Run the same demo natively (Go 1.26.8+)
-task run-demo
-# Start in typeset mode
-task run-demo -- -typeset
-
-# Build the browser demo and run its Node smoke tests (Node 22+)
-task build-wasm-site
-
-# Serve at http://localhost:8000/ntdiff/
-task serve-wasm-site
-```
-
-The demo lives in `examples/demo` with its own module, embedded sample patch,
-and a small illustrative syntax annotator. `web/` contains the static site.
-`wasm.work` pins the team's browser-compatible Bubble Tea and clipboard forks;
-native builds keep upstream dependencies. Generated WASM and booba/ntwebterm assets
-are ignored by Git and recreated by `go -C examples tool booba-assets --no-index`.
-The GitHub Pages workflow builds and smoke-tests the demo before publishing.
-
-`task ci` runs formatting, module tidiness and checksum checks, race tests,
-bounded fuzzing, `go vet`, native builds, and the WASM build and smoke tests. It requires Go
-1.26.8+, a C compiler for the race detector, Task, and Node 22+. Module tidiness
-checks do not rewrite files; use `task go-tidy` to fix them.
-
-`task fuzz` exercises parser line numbers and hunk counts (including partial
-trees), quoted file paths, and text preservation under arbitrary token ranges.
-Each target runs for 10 seconds with two workers. Use `task fuzz FUZZTIME=1m`
-for a longer campaign. Seed cases also run with ordinary `go test`; Go saves
-failing inputs under `diff/testdata/fuzz` for reproduction and regression tests.
-
-`task test` tests both modules. `task check-site` checks already-built web assets
-and exercises the real WASM bridge under Node in both starting views, including
-live mode switching, action publication, resizing, and clean exit.
-
-## Structured diffs and typeset documents
-
-The module requires Go 1.26.8 or later and uses the canonical import path
-`nimbleterminal.dev/ntdiff`.
-
-Parse once, then use the same tree for either renderer:
+To acquire input directly:
 
 ```go
-tree, err := diff.Parse(diffText)
-if err != nil {
-    return err // includes the input line number; tree contains the parsed prefix
-}
-model := diff.NewModel()
-model.LoadTree(tree)
-
-// Import diffTypeset "nimbleterminal.dev/ntdiff/typeset".
-doc := diffTypeset.Convert(tree, diffTypeset.Options{LineNumbers: true})
-// doc is *nttypeset.Document, ready for an app-owned nttypeset.Engine.
+tree, err := diff.FromGit(ctx, repoDir, "--cached", "--", "file.go")
+// Or compare files/directories inside or outside a repository:
+tree, err = diff.ComparePaths(ctx, oldPath, newPath)
 ```
 
-The tree consists of `Diff.Files`, `File.Hunks`, and `Hunk.Lines`. Lines carry a
-`LineKind`, source text without its diff prefix, and optional `*int` old/new
-numbers. Zero-length hunk ranges are distinct from absent line numbers.
-`File.Stats()` derives counts from the tree. `File.Headers` preserves extended
-Git metadata, binary notices/payloads, and file headers in order; `Diff.Preamble`
-preserves introductory text. Each tree level has an optional caller-owned
-`Metadata` map. Binary payloads are retained, not decoded.
+Both helpers honor context cancellation and accept Git's “differences found”
+exit status. Git arguments are passed without a shell.
 
-`diff.FromGit(ctx, dir, args...)` and `diff.ComparePaths(ctx, old, new)` acquire
-and parse input. The latter works inside or outside a repository and handles
-Git's “differences found” exit status. The CLI uses these same helpers.
+### Syntax annotations
 
-`Parse` accepts Git and plain unified diffs, including multiple files/hunks,
-renames, mode changes, quoted Git paths, and no-final-newline markers. Malformed
-hunk ranges/counts and combined merge diffs return errors. This is a display
-model, not a byte-for-byte patch serializer: hunk headers use explicit counts,
-and trailing patch separators are not retained inside hunks.
+Attach `Line.Tokens` using ordered, non-overlapping UTF-8 byte ranges of
+`Line.Text`. Tokens carry a category and an optional `TextStyle` (RGBA foreground,
+bold, italic). Both renderers preserve the diff color on the `+`/`-` marker while
+allowing source colors in the body. Invalid ranges fall back to plain line text.
 
-`Line.Tokens` optionally annotates ordered, non-overlapping UTF-8 byte ranges of
-`Line.Text`. Each token has a lexer `Kind` and portable `TextStyle` (RGBA ink,
-bold, italic). Both renderers use those styles; typeset callers can additionally
-map categories with `Options.TokenStyle`. Invalid token ranges fall back to the
-whole line's plain diff style. Tokenization is caller-owned: highlight complete
-old/new source when available, then attach tokens using the line numbers. This
-avoids guessing multiline lexical state from partial hunks. The +/- marker
-retains its diff color even when syntax colors override the body.
+Tokenization belongs to your app. When full old/new source is available,
+highlight that source and attach tokens using the line numbers; partial hunks
+alone cannot reliably establish multiline lexer state.
 
-`File.Rows` is the shared, derived row/span traversal. `diff.RenderFile` applies
-Lip Gloss styling; `typeset.Convert` creates monospace `KindLine` blocks with
-styled spans. Optional old/new line-number columns are explicit spans;
-nttypeset's sequential document gutter is disabled. Tabs default to four spaces.
-The document uses unified rows, matching the existing file-list/viewport UI.
+## Typeset documents
 
-The embedding app owns fonts, viewport sizing, layout, rasterization, and
-ntpicture's terminal protocol lifecycle. For example, given a configured engine:
+```go
+import diffTypeset "nimbleterminal.dev/ntdiff/typeset"
+
+doc := diffTypeset.Convert(tree, diffTypeset.Options{
+    LineNumbers: true,
+    TabWidth:    4,
+})
+```
+
+`Convert` returns an `*nttypeset.Document` with monospace `KindLine` blocks.
+Old/new line-number columns are explicit spans rather than nttypeset's sequential
+gutter. Options control text size, tab width, diff colors, and category-to-style
+mapping through `TokenStyle`.
+
+Your app owns fonts, viewport dimensions, layout, rasterization, and image
+presentation. Given a configured nttypeset engine:
 
 ```go
 layout, err := engine.Layout(doc, 1000, nttypeset.LayoutOptions{})
@@ -201,27 +158,101 @@ img, err := layout.Raster(ctx,
     nttypeset.RasterOptions{Palette: nttypeset.DarkPalette()},
 )
 if err != nil { return err }
-// Pass img (image.Image) to the app's ntpicture model.
+// Present img through your app's ntpicture instance.
 ```
 
-This keeps the font bundles and image-display lifecycle out of the diff library.
-The `typeset` package is optional to import; terminal-only binaries do not link
-nttypeset. Its dependency still sets the module-wide Go version requirement.
+See [the demo](./examples/demo/main.go) for font setup, selected-file rendering,
+and [ntpicture](https://github.com/NimbleTerminal/ntpicture) integration. Importing
+only `diff` does not link the typeset renderer; nttypeset still contributes to the
+module's Go version requirement.
 
-Existing `NewModel`, `LoadDiff`, `ParseDiff`, and `ColorizeDiff` entry points remain
-available. Prefer `Parse` to surface errors: the legacy no-error wrappers use the
-parsed prefix. `ParseDiff` returns derived `FileChange` snapshots with normalized
-hunk headers. Treat a loaded tree as immutable and call `LoadTree` again after
-editing it; that resets selection and scrolling. The separate caller-supplied
-`RichDiff` / `RichModel` API is unchanged.
+## Side-by-side rows
 
-### Module migration
+`RichDiff` is a separate, caller-supplied representation for comparisons that
+already have aligned rows. Each `RichLine` contains left/right text, a status
+(`Shared`, `LeftOnly`, `RightOnly`, `Changed`, or `Collapsed`), and optional
+metadata. `ForkIndex` marks a boundary between rows.
 
-The repository lives at [NimbleTerminal/ntdiff](https://github.com/NimbleTerminal/ntdiff)
-and the canonical Go module path is `nimbleterminal.dev/ntdiff`. Existing consumers
-should change their imports from `github.com/NimbleMarkets/ntdiff` to
-`nimbleterminal.dev/ntdiff`, including the `/diff` and `/typeset` packages, and run
-`go mod tidy`. The package layout is unchanged.
+```go
+model := diff.NewRichModel()
+model.SetSize(100, 24)
+model.LoadRichDiff(diff.RichDiff{
+    LeftLabel: "Before", RightLabel: "After",
+    Lines: []diff.RichLine{
+        {LeftText: "old", RightText: "new", Status: diff.Changed},
+    },
+})
+content := model.View()
+```
 
-Update all imports together: Go treats the old and new module paths as different
-type identities. A GitHub repository redirect alone does not migrate Go imports.
+Forward messages to `RichModel.Update` and retain the returned model. Use
+`SetMetaRenderer` for the optional third column and `JumpToFork` to reveal the
+fork marker. The host owns expanding/collapsing rows and other application keys.
+
+## Demo
+
+The native and browser demo share a four-file patch, a syntax annotator, and the
+same parsed tree. Press `v` to switch terminal/typeset views, `n` to toggle line
+numbers in typeset mode, and `t` to switch glyph/Kitty rendering when supported.
+
+```sh
+task run-demo                   # native terminal view
+task run-demo -- -typeset        # start in typeset mode
+task build-examples             # bin/ntdiff-demo
+task build-wasm-site            # build and smoke-test the browser demo
+task serve-wasm-site            # http://localhost:8000/ntdiff/
+```
+
+The [examples module](./examples/go.mod) keeps Booba and font bundles out of the
+library's direct dependencies. `wasm.work` pins browser-compatible Bubble Tea and
+clipboard forks; native builds use upstream Bubble Tea. The browser runtime and
+WASM output are generated into `web/` and ignored by Git.
+
+## Migration
+
+The repository moved from NimbleMarkets to NimbleTerminal. Replace imports of
+`github.com/NimbleMarkets/ntdiff` with `nimbleterminal.dev/ntdiff`, including the
+`/diff` and `/typeset` packages, then run `go mod tidy`. Update all imports
+together: Go treats different module paths as different type identities.
+
+`NewModel`, `LoadDiff`, `ParseDiff`, and `ColorizeDiff` remain available. Prefer
+`Parse` followed by `LoadTree` when you need errors; the legacy no-error wrappers
+use the parsed prefix. `ParseDiff` returns derived `FileChange` snapshots with
+normalized hunk headers. The `RichDiff`/`RichModel` API remains separate.
+
+## Open Collaboration
+
+Run `task ci` before submitting changes. It checks formatting, module tidiness,
+dependency checksums, race tests, fuzzing, vet, native builds, and the WASM demo.
+It requires Go 1.26.8+, a C compiler for the race detector, Task, and Node 22+.
+GitHub Actions runs the same task before deploying Pages.
+
+```sh
+task test                 # tests and fuzz seed cases in both modules
+task fuzz                 # three targets, 10 seconds each, two workers
+task fuzz FUZZTIME=1m      # a longer campaign for each target
+task go-tidy              # update module files when dependencies change
+task check-site           # check already-built assets and both WASM views
+```
+
+Fuzzing checks parser line numbers and hunk counts (including partial trees),
+quoted paths, and text preservation under arbitrary token ranges. Go saves
+failing inputs under `diff/testdata/fuzz` for reproduction and regression tests.
+Module tidiness checks in CI do not rewrite files.
+
+Contributions and feedback are welcome. Please follow our
+[Code of Conduct](./CODE_OF_CONDUCT.md).
+
+- [Report an issue](https://github.com/NimbleTerminal/ntdiff/issues)
+- [Submit a pull request](https://github.com/NimbleTerminal/ntdiff/pulls)
+
+## Acknowledgements
+
+Built on [Charm](https://charm.land)'s Bubble Tea, Bubbles, and Lip Gloss, with
+[nttypeset](https://github.com/NimbleTerminal/nttypeset),
+[ntpicture](https://github.com/NimbleTerminal/ntpicture), and
+[Booba](https://github.com/NimbleTerminal/booba) powering the typeset/browser demo.
+
+----
+Made with :heart: and :fire: by the team behind
+[Nimble Terminal](https://nimbleterminal.dev).
