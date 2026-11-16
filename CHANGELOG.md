@@ -1,5 +1,12 @@
 # `ntdiff` CHANGELOG
 
+## v0.1.1 (2026-11-16)
+
+### Changed
+
+- Update Lip Gloss to v2.1.1, nttypeset to v0.3.0, and indirect Go dependencies.
+- Update the examples and Go tools to Booba v0.13.0 and ntpicture v0.2.0.
+
 ## v0.1.0 (2026-11-05)
 
 ### Migration
@@ -63,4 +70,5 @@ First tagged release, under `github.com/NimbleMarkets/ntdiff`.
 - Display-width-aware row padding and fork-marker placement regression tests.
 - Contributor Code of Conduct.
 
+[v0.1.1 changes](https://github.com/NimbleTerminal/ntdiff/compare/v0.1.0...v0.1.1)
 [v0.1.0 changes](https://github.com/NimbleTerminal/ntdiff/compare/v0.0.1...v0.1.0)
